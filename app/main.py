@@ -1,49 +1,28 @@
-# app/main.py
 from fastapi import FastAPI, Request
 from fastapi.responses import Response
-from prometheus_client import (
-    Counter, Histogram, Gauge,
-    CollectorRegistry, generate_latest, CONTENT_TYPE_LATEST,
-    PROCESS_COLLECTOR, PLATFORM_COLLECTOR,
-)
+from prometheus_client import Counter, Histogram, Gauge, generate_latest, CONTENT_TYPE_LATEST
+# ⬆️ Note: no custom CollectorRegistry import/usage now
 import time, random, logging
 
-# --- logging (plain JSON-ish) ---
 logging.basicConfig(
     level=logging.INFO,
     format='{"ts":"%(asctime)s","level":"%(levelname)s","msg":"%(message)s"}'
 )
 log = logging.getLogger("w9")
 
-# Instantiate app FIRST
 app = FastAPI(title="W9-D1 FastAPI with Prometheus")
 
-# --- metrics registry ---
-registry = CollectorRegistry()
-PROCESS_COLLECTOR(registry)
-PLATFORM_COLLECTOR(registry)
-
+# --- metrics (register on default registry) ---
 REQUEST_COUNT = Counter(
-    "http_requests_total",
-    "Total HTTP requests",
-    ["method", "path", "status_code"],
-    registry=registry,
+    "http_requests_total", "Total HTTP requests", ["method", "path", "status_code"]
 )
-
 REQUEST_LATENCY = Histogram(
     "http_request_duration_seconds",
     "Request latency (seconds)",
     ["method", "path", "status_code"],
     buckets=(0.01, 0.025, 0.05, 0.075, 0.1, 0.2, 0.3, 0.5, 1, 2, 5),
-    registry=registry,
 )
-
-INPROGRESS = Gauge(
-    "inprogress_requests",
-    "In-progress requests",
-    ["path"],
-    registry=registry,
-)
+INPROGRESS = Gauge("inprogress_requests", "In-progress requests", ["path"])
 
 @app.middleware("http")
 async def metrics_middleware(request: Request, call_next):
@@ -79,6 +58,6 @@ def error():
 
 @app.get("/metrics")
 def metrics():
-    # Prometheus expects plain text format (not JSON)
-    return Response(generate_latest(registry), media_type=CONTENT_TYPE_LATEST)
+    # Return Prometheus exposition format as raw bytes
+    return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
