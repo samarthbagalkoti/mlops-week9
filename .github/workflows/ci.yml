@@ -41,6 +41,17 @@ jobs:
           docker compose up -d --build
           # wait a bit for app to start
           sleep 10
+      - name: Wait for service (metrics)
+        run: |
+          for i in {1..60}; do
+          if curl -fsS http://localhost:8000/metrics >/dev/null; then
+          echo "Metrics endpoint UP"
+          exit 0
+          fi
+          echo "waiting for app... ($i/60)"
+          sleep 2
+          done
+          echo "App not ready"; docker compose ps; docker compose logs --no-color --tail=200; exit 1
 
       - name: Run tests
         env:
