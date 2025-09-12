@@ -1,0 +1,53 @@
+groups:
+  - name: w9.rules
+    rules:
+      # 1) High p95 latency (>200ms for 2m)
+      - alert: HighP95Latency
+        expr: histogram_quantile(
+                0.95,
+                sum(rate(http_request_duration_seconds_bucket[5m])) by (le)
+              ) > 0.2
+        for: 2m
+        labels:
+          severity: warning
+          team: mlops
+        annotations:
+          summary: "p95 latency high"
+          description: "p95 > 200ms for 2m. Investigate slow endpoints, resource saturation, or dependency slowness."
+
+      # 2) 5xx error ratio > 5% for 5m
+      - alert: HighErrorRate5xx
+        expr: (sum(rate(http_requests_total{status_code=~"5.."}[5m]))
+              / sum(rate(http_requests_total[5m]))) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          team: mlops
+        annotations:
+          summary: "High 5xx error rate"
+          description: "5xx ratio > 5% for 5m. Check recent deploys, exceptions at /error, dependencies."
+
+      # 3) SLO burn-rate FAST (99% SLO => 1% budget). >14.4x over 5m for 2m.
+      - alert: SLOErrorBudgetBurnFast
+        expr: ((sum(rate(http_requests_total{status_code=~"5.."}[5m]))
+               / sum(rate(http_requests_total[5m])))/0.01) > 14.4
+        for: 2m
+        labels:
+          severity: critical
+          slo: "availability-99"
+        annotations:
+          summary: "Fast error budget burn"
+          description: "Burn-rate >14.4× over 5m. Immediate attention; will exhaust 30d budget quickly."
+
+      # 4) SLO burn-rate SLOW >6x over 1h (early warning)
+      - alert: SLOErrorBudgetBurnSlow
+        expr: ((sum(rate(http_requests_total{status_code=~"5.."}[1h]))
+               / sum(rate(http_requests_total[1h])))/0.01) > 6
+        for: 30m
+        labels:
+          severity: warning
+          slo: "availability-99"
+        annotations:
+          summary: "Slow error budget burn"
+          description: "Burn-rate >6× over 1h. Investigate before it becomes critical."
+

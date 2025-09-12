@@ -1,0 +1,25 @@
+global:
+  resolve_timeout: 5m
+
+route:
+  receiver: "local-webhook"
+  group_by: ["alertname"]
+  group_wait: 10s
+  group_interval: 1m
+  repeat_interval: 30m
+
+receivers:
+  - name: "local-webhook"
+    webhook_configs:
+      - url: "http://alert-listener:5001/alert"
+        send_resolved: true
+
+# Example Slack (uncomment & fill to use Slack)
+# receivers:
+#   - name: "slack"
+#     slack_configs:
+#       - api_url: "https://hooks.slack.com/services/XXX/YYY/ZZZ"
+#         channel: "#mlops-alerts"
+#         title: "{{ .CommonAnnotations.summary }}"
+#         text: "{{ range .Alerts }}*{{ .Labels.alertname }}* {{ .Annotations.description }}\n{{ end }}"
+

@@ -9,10 +9,10 @@ export const options = {
 export default function () {
   // 80% good requests, 20% slowish, plus occasional error endpoint
   if (Math.random() < 0.05) {
-    http.get('http://localhost:8000/error');
+    http.get('http://0.0.0.0:8001/error');
   } else {
     const q = Math.random() < 0.2 ? 0.9 : 0.5;
-    http.get(`http://localhost:8000/predict?q=${q}`);
+    http.get(`http://0.0.0.0:8001/predict?q=${q}`);
   }
   sleep(0.1);
 }

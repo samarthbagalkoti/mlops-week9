@@ -3,25 +3,38 @@ services:
   app:
     build: ./app
     container_name: w9-app
-    ports: ["8000:8000"]
-    healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://localhost:8000/healthz || exit 1"]
-      interval: 5s
-      timeout: 2s
-      retries: 30
+    ports: ["8001:8000"]
 
   prometheus:
     image: prom/prometheus:v2.53.0
     container_name: w9-prometheus
-    ports: ["9090:9090"]
+    ports: ["9091:9090"]
     volumes:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/rules:/etc/prometheus/rules:ro
     command: ["--config.file=/etc/prometheus/prometheus.yml"]
+    depends_on: [app]
+
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    container_name: w9-alertmanager
+    ports: ["9093:9093"]
+    volumes:
+      - ./monitoring/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+    command: ["--config.file=/etc/alertmanager/alertmanager.yml"]
+    depends_on: [prometheus, alert-listener]
+
+  alert-listener:
+    build: ./monitoring/alert-listener
+    container_name: w9-alert-listener
+    ports: ["5001:5001"]
+    volumes:
+      - ./monitoring/alert-listener-data:/data
 
   grafana:
     image: grafana/grafana:10.4.2
     container_name: w9-grafana
-    ports: ["3000:3000"]
+    ports: ["3001:3000"]
     volumes:
       - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
       - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards
