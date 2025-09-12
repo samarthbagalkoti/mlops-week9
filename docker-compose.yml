@@ -3,7 +3,7 @@ services:
   app:
     build: ./app
     container_name: w9-app
-    ports: ["8001:8000"]
+    ports: ["8001:8001"]
 
   prometheus:
     image: prom/prometheus:v2.53.0
@@ -18,7 +18,7 @@ services:
   alertmanager:
     image: prom/alertmanager:v0.27.0
     container_name: w9-alertmanager
-    ports: ["9093:9093"]
+    ports: ["9094:9094"]
     volumes:
       - ./monitoring/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
     command: ["--config.file=/etc/alertmanager/alertmanager.yml"]
@@ -29,7 +29,7 @@ services:
     container_name: w9-alert-listener
     ports: ["5001:5001"]
     volumes:
-      - ./monitoring/alert-listener-data:/data
+      - ./monitoring/alert-listener-data:/var/log/alerts
 
   grafana:
     image: grafana/grafana:10.4.2

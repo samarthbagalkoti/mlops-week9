@@ -1,0 +1,11 @@
+groups:
+- name: wiring
+  rules:
+  - alert: WiringTest
+    expr: vector(1)
+    for: 10s
+    labels:
+      severity: info
+    annotations:
+      summary: "Wiring path OK"
+

@@ -1,4 +1,7 @@
 APP?=w9-app
+APP_URL ?= http://localhost:8001
+ALERT_BURST ?= 30
+SLOW_REQS   ?= 60
 
 .PHONY: setup run load open test clean
 	
@@ -39,14 +42,21 @@ alerts.up:
 	@echo "Grafana:       http://0.0.0.0:3001"
 
 alerts.tail:
-	tail -f monitoring/alert-listener-data/alerts.log
+	@mkdir -p monitoring/alert-listener-data
+	@touch monitoring/alert-listener-data/alerts.log
+	tail -F --retry monitoring/alert-listener-data/alerts.log
+
 
 # Traffic that should trigger both latency & errors
 alerts.fire:
-	# burst some errors
-	for i in $(seq 1 50); do curl -s -o /dev/null -w \"%{http_code}\\n\" http://0.0.0.0:8001/error || true; done
-	# slow predictions to push p95 > 200ms
-	for i in $(seq 1 200); do curl -s \"http://0.0.0.0:8001/predict?q=0.95\" > /dev/null; done
+	@echo "# burst some errors"
+	@for i in $$(seq 1 $(ALERT_BURST)); do \
+		curl -s -o /dev/null -w "%{http_code}\n" "$(APP_URL)/error" || true; \
+	done
+	@echo "# slow predictions to push p95 > 200ms"
+	@for i in $$(seq 1 $(SLOW_REQS)); do \
+		curl -s "$(APP_URL)/predict?q=0.95" > /dev/null || true; \
+	done
 
 alerts.clean:
 	docker compose down -v
