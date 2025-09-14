@@ -44,3 +44,28 @@ services:
       - GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH=/var/lib/grafana/dashboards/w9-fastapi.json
     depends_on: [prometheus]
 
+  drift-sim:
+    build:
+      context: ./drift
+      dockerfile: sim.Dockerfile
+    container_name: w9-drift-sim
+    volumes:
+      - ./data:/data
+    restart: unless-stopped
+
+
+  drift-exporter:
+    build: ./drift/exporter
+    container_name: w9-drift-exporter
+    ports: ["8002:8002"]
+    environment:
+      - DATA_DIR=/data
+      - REPORT_DIR=/reports
+      - EVAL_INTERVAL_SEC=15
+      - DATASET_LABEL=demo
+    volumes:
+      - ./data:/data
+      - ./reports:/reports
+    depends_on:
+      - drift-sim
+

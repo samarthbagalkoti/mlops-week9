@@ -2,9 +2,19 @@ APP?=w9-app
 APP_URL ?= http://localhost:8001
 ALERT_BURST ?= 30
 SLOW_REQS   ?= 60
+SHELL := /bin/bash
+PY ?= python3
 
+PY ?= .venv/bin/python
+
+.PHONY: setup
+setup:
+	@test -x .venv/bin/python || python3 -m venv .venv
+	@.venv/bin/python -m pip install --upgrade pip
+	@.venv/bin/pip install -r requirements.txt
 .PHONY: setup run load open test clean
-	
+.PHONY: drift.trigger
+
 setup:
 	@echo "Nothing to setup. Ensure Docker Desktop is running."
 
@@ -61,3 +71,27 @@ alerts.fire:
 alerts.clean:
 	docker compose down -v
 	rm -f monitoring/alert-listener-data/alerts.log || true
+
+drift.up:
+	docker compose up -d --build
+	@sleep 8
+	@echo "Exporter:   http://localhost:8001/healthz"
+	@echo "Report:     http://localhost:8001/report"
+	@echo "Prometheus: http://localhost:9090"
+	@echo "Grafana:    http://localhost:3000"
+
+drift.view:
+	@python3 -c "import webbrowser; webbrowser.open('http://localhost:8002/report')"
+
+drift.sim:
+	@echo "Simulating alternating healthy vs drifted windows (already running in container)."
+
+# your existing target, now uses venv python
+drift.trigger: setup
+	@$(PY) -c 'import os,pandas as pd,numpy as np; from sklearn.datasets import make_classification; os.makedirs("data",exist_ok=True); X,y=make_classification(n_samples=600,n_features=6,n_informative=4,random_state=7,class_sep=0.5); X[:,0]+=0.8; X[:,1]+=0.5; pd.DataFrame(X,columns=["f{}".format(i) for i in range(6)]).assign(target=y).to_csv("data/current.csv",index=False); print("wrote data/current.csv (forced drift)")'
+
+
+drift.clean:
+	docker compose down -v
+	rm -rf data/*.csv reports/*
+

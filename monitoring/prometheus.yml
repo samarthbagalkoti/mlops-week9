@@ -20,3 +20,18 @@ scrape_configs:
     static_configs:
       - targets: ["app:8001"]
 
+scrape_configs:
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["prometheus:9090"]
+
+  - job_name: "w9-app"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["app:8001"]
+
+  - job_name: "evidently-drift"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["drift-exporter:8002"]
+
